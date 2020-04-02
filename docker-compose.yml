@@ -1,0 +1,11 @@
+version: '1'
+services:
+  graphqlapi:
+    build: .
+    ports:
+      - "8080:8080"
+  redis:
+    image: "redis:latest"
+    command: "redis-server --requirepass 3jb4jbatb3i4b2ht0013bo2312kjh2135kJQQkHhiuhyQ89Y98DGQGwd8gsagdq98gQ9S9G98Agsd98g8G98G9g8gASGD8G"
+    ports:
+        - "6379:6378"
