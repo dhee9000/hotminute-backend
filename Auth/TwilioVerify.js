@@ -4,20 +4,25 @@ const serviceId = process.env.VERIFY_SERVICE_SID;
 
 const client = require('twilio')(accountSid, authToken);
 
-function sendVerificationCode(num){
-    client.verify.services(serviceId)
-                .verifications
-                .create({to: '+17038263618', channel: 'sms'})
-                .then(verification => console.log(verification.status))
-                .catch(error => console.error("TwilioError:", error));
+function sendVerificationCode(phno){
+    return new Promise((resolve, reject) => {
+        client.verify.services(serviceId)
+            .verifications
+            .create({to: phno, channel: 'sms'})
+            .then(verification_check => resolve(verification_check))
+            .catch(error => reject(error));
+    })
 }
 
-function verifyPhoneNumberWithCode(num, code){
-    client.verify.services(serviceId)
-        .verificationChecks
-        .create({to: '+15017122661', code: '123456'})
-        .then(verification_check => console.log(verification_check.status))
-        .catch(error => console.error("TwilioError:", error));
+function verifyPhoneNumberWithCode(phno, code){
+    return new Promise((resolve, reject) => {
+        client.verify.services(serviceId)
+            .verificationChecks
+            .create({to: phno, code})
+            .then(verification_check => resolve(verification_check))
+            .catch(error => reject(error));
+    })
 }
 
 exports.sendVerificationCode = sendVerificationCode;
+exports.verifyPhoneNumberWithCode = verifyPhoneNumberWithCode;

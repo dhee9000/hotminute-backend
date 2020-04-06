@@ -42,8 +42,7 @@ const server = new ApolloServer(
         resolvers,
         context: (args) => {
           return {
-            ...AuthContext(args),
-
+            // ...AuthContext(args),
           }
         }
     }
@@ -52,4 +51,4 @@ server.applyMiddleware({ app });
 
 app.listen({ port: PORT }, () =>
   console.log(`🚀 GraphQL Server ready at http://localhost:${PORT}${server.graphqlPath}`)
-)
+);
