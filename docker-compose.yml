@@ -1,11 +1,15 @@
-version: '1'
+version: '3'
 services:
   graphqlapi:
     build: .
     ports:
-      - "8080:8080"
+      - "4000:4000"
+    links:
+      - redis
+    env_file:
+      - production.env
   redis:
     image: "redis:latest"
-    command: "redis-server --requirepass 3jb4jbatb3i4b2ht0013bo2312kjh2135kJQQkHhiuhyQ89Y98DGQGwd8gsagdq98gQ9S9G98Agsd98g8G98G9g8gASGD8G"
+    command: "redis-server --requirepass 9d13d2b1e6742c194349a22f66543417"
     ports:
-        - "6379:6378"
+      - "6379:6379"
