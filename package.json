@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "description": "Backend for Hot Minute",
   "scripts": {
-    "start": "node ."
+    "start": "node .",
+    "start-dev": "nodemon index.js"
   },
   "main": "index.js",
   "author": "Dheeraj Yalamanchili",
@@ -15,15 +16,19 @@
     "@babel/preset-env": "^7.9.0",
     "agora-access-token": "^2.0.2",
     "apollo-server-express": "^2.11.0",
+    "bcrypt": "^4.0.1",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-graphql": "^0.9.0",
     "graphql": "^14.6.0",
     "graphql-tools": "^4.0.7",
+    "jsonwebtoken": "^8.5.1",
     "merge-graphql-schemas": "^1.7.6",
     "mongoose": "^5.9.6",
     "mongoose-type-url": "^1.0.6",
     "redis": "^3.0.2",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.3.0",
+    "twilio": "^3.42.0"
   },
   "devDependencies": {
     "@babel/node": "^7.8.7",
