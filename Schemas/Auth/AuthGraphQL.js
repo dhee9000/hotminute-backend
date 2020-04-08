@@ -1,5 +1,5 @@
 // First import the required functions
-const { sendVerificationCode, verifyPhoneNumberWithCode } = require('./TwilioVerify');
+const { sendVerificationCode, verifyPhoneNumberWithCode } = require('./util/TwilioVerify');
 
 // Then Define GraphQL Schema for GQL using the Mongoose fields above
 const { gql } = require('apollo-server-express');
