@@ -23,7 +23,7 @@ mongo.connection.once('open', () => {
 
 const redisOptions = {host: process.env.REDIS_HOST, password: process.env.REDIS_PASSWORD};
 if(!process.env.REDIS_PASSWORD) delete redisOptions.password;
-const client = redis.createClient();
+const client = redis.createClient(redisOptions);
 client.on('connect', () => {
     console.log('💿 Connected to Redis application store');
 })
