@@ -35,9 +35,9 @@ const authResolvers = {
             }));
         },
         verifyPhoneNumber: (parent, args) => {
-            return verifyPhoneNumberWithCode(args.input.phoneNumber, args.input.verificationCode).then(result => ({
-                verified: result.status === 'approved'
-            }));
+            return verifyPhoneNumberWithCode(args.input.phoneNumber, args.input.verificationCode).then(result => {
+                return ({ verified: result.status === 'approved'})
+            });
         }
     }
 }

@@ -6,7 +6,7 @@ const Role = RtcRole.PUBLISHER;
 
 const EXPIRY_IN_SECONDS = 120
 
-export default function generateRTCToken(uid, channel){
+exports.generateRTCToken = function generateRTCToken(uid, channel){
     const currentTimestamp = Math.floor(Date.now() / 1000)
     const expiryTime = currentTimestamp + EXPIRY_IN_SECONDS
     const token = RtcTokenBuilder.buildTokenWithUid(AppID, AppCertificate, channel, uid, Role, expiryTime);
