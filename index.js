@@ -10,8 +10,8 @@ const SSL_PORT = process.env.SSL_PORT || 443;
 const app = express();
 
 // Setup Data Store Access
-const MongoClient = require('./Clients/MongoClient.js');
-const RedisClient = require('./Clients/RedisClient.js');
+// const MongoClient = require('./Clients/MongoClient.js');
+// const RedisClient = require('./Clients/RedisClient.js');
 
 // Setup GRAPHQL Server
 const { typeDefs, resolvers } = require('./Schemas/GraphQLSchema');
@@ -42,72 +42,61 @@ const serverHTTP = http.createServer(app).listen(HTTP_PORT, () => {
   console.log(`🚀 GraphQL Server ready at http://localhost:${HTTP_PORT}${apolloServer.graphqlPath}`);
 });
 
-// Setup SocketIO Server
-const io = require('socket.io').listen(serverHTTP);
+// Setup WebSocket Server
+const WebSocketServer = require('websocket').server;
 const admin = require('./Clients/FirebaseClient');
 const AgoraClient = require('./Clients/AgoraClient');
-
-const matchmaker = io.of('/matchmaker');
 
 let usersNeedingMatches = [];
 let activeUsers = [];
 
+const io = new WebSocketServer({
+  httpServer: serverHTTP,
+})
+
+const clients = {};
+
+const getUniqueID = () => {
+  const s4 = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+  return s4() + s4() + '-' + s4();
+};
+
+io.on('request', request => {
+  var userId = getUniqueID();
+  console.log((new Date()) + ' Recieved a new connection from origin ' + request.origin + '.');
+  const connection = request.accept(null, request.origin);
+  clients[userId] = connection;
+  connection.on('message', message => {
+    var message = JSON.parse(message.utf8Data);
+    switch(message.type){
+      case 'debug': {
+        console.log(message.body);
+        connection.send(JSON.stringify({
+          type: 'debug',
+          body: 'Success'
+        }));
+      }
+    }
+  })
+
+  connection.on('close', connection => {
+    console.log((new Date()) + " Peer " + userId + " disconnected.");
+    delete clients[userID];
+  })
+  console.log('connected: ' + userId + ' in ' + Object.getOwnPropertyNames(clients))
+})
+
 // add authentication to socket
-matchmaker.use((socket, next) => {
-  let idToken = socket.handshake.query.token;
-  // BYPASS AUTHENTICATION TODO: REMOVE THIS LINE
-  return next();
-  admin.auth().verifyIdToken(idToken)
-    .then(function (decodedToken) {
-      let uid = decodedToken.uid;
-      activeUsers.push({uid, socketId: socket.id});
-      return next();
-    }).catch(function (error) {
-      return next(Error('authentication error'));
-    });
-});
-
-matchmaker.on('connect', socket => {
-
-  // handle user joining the queue
-  socket.on('joinqueue', requestingUser => {
-    console.log(`Join queue request received from ${requestingUser.uid}`)
-    socket.emit('debug', 'Success');
-    socket.emit('joinqueue', 'success');
-    if(usersNeedingMatches.find(e => e.uid == requestingUser.uid)){
-      return;
-    }
-    if (usersNeedingMatches.length > 0) {
-      let nextUser = usersNeedingMatches.pop();
-      let requestingUserToken = AgoraClient.generateRTCToken(requestingUser.uid, `${requestingUser.uid}_${nextUser.uid}`)
-      let nextUserToken = AgoraClient.generateRTCToken(nextUser.uid, `${requestingUser.uid}_${nextUser.uid}`)
-      socket.emit('matchfound', {token: requestingUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`});
-      socket.emit('debug', 'Match Found!');
-      socket.to(nextUser.socketId).emit('matchfound', {token: nextUserToken});
-      socket.to(nextUser.socketId).emit('debug', 'Match Found!');
-      usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != requestingUser.uid);
-      usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != nextUser.uid);
-    }
-    else {
-      usersNeedingMatches.push({uid: requestingUser.uid, socketId: socket.id});
-    }
-  });
-
-  socket.on('leavequeue', requestingUser => {
-    console.log(`Leave queue request received from ${requestingUser.uid}`);
-    socket.emit('debug', 'Success');
-    usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != requestingUser.uid);
-    socket.emit('leavequeue', 'success');
-  })
-
-  socket.on('debug', string => {
-    console.log(string);
-    socket.emit('debug', "Success");
-  });
-
-
-  socket.on('disconnect', () => {
-
-  })
-
-});
+// matchmaker.use((socket, next) => {
+//   let idToken = socket.handshake.query.token;
+//   // BYPASS AUTHENTICATION TODO: REMOVE THIS LINE
+//   return next();
+//   admin.auth().verifyIdToken(idToken)
+//     .then(function (decodedToken) {
+//       let uid = decodedToken.uid;
+//       activeUsers.push({uid, socketId: socket.id});
+//       return next();
+//     }).catch(function (error) {
+//       return next(Error('authentication error'));
+//     });
+// });
