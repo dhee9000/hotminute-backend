@@ -47,14 +47,14 @@ const WebSocketServer = require('websocket').server;
 const admin = require('./Clients/FirebaseClient');
 const AgoraClient = require('./Clients/AgoraClient');
 
-let usersNeedingMatches = [];
-let activeUsers = [];
-
 const io = new WebSocketServer({
   httpServer: serverHTTP,
 })
 
 const clients = {};
+const users = {};
+
+let usersNeedingMatches = [];
 
 const getUniqueID = () => {
   const s4 = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
@@ -66,22 +66,59 @@ io.on('request', request => {
   console.log((new Date()) + ' Recieved a new connection from origin ' + request.origin + '.');
   const connection = request.accept(null, request.origin);
   clients[userId] = connection;
-  connection.on('message', message => {
-    var message = JSON.parse(message.utf8Data);
+  connection.on('message', messageRaw => {
+    var message = JSON.parse(messageRaw.utf8Data);
     switch(message.type){
+      case 'auth': {
+        console.log(`Client ${userId} is ${message.body}`);
+        users[message.body] = userId;
+        break;
+      }
       case 'debug': {
         console.log(message.body);
         connection.send(JSON.stringify({
           type: 'debug',
           body: 'Success'
         }));
+        break;
+      }
+      case 'joinqueue': {
+        console.log(`User with socketId ${userId} is joining queue with uid ${message.body.uid}`)
+        var requestingUser = message.body;
+        if(usersNeedingMatches.find(e => e.uid == requestingUser.uid)){
+          return;
+        }
+        if (usersNeedingMatches.length > 0) {
+          let nextUser = usersNeedingMatches.pop();
+          let requestingUserToken = AgoraClient.generateRTCToken(requestingUser.uid, `${requestingUser.uid}_${nextUser.uid}`)
+          let nextUserToken = AgoraClient.generateRTCToken(nextUser.uid, `${requestingUser.uid}_${nextUser.uid}`)
+          
+          connection.send(JSON.stringify({type: 'matchfound', body:{token: requestingUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}));
+          connection.send(JSON.stringify({type: 'debug', body: 'Match Found!'}));
+          
+          clients[users[nextUser.uid]].send(JSON.stringify({type: 'matchfound', body:{token: requestingUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}))
+          clients[users[nextUser.uid]].send(JSON.stringify({type: 'debug', body: 'Match Found!'}));
+          
+          usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != requestingUser.uid);
+          usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != nextUser.uid);
+        }
+        else {
+          usersNeedingMatches.push({uid: requestingUser.uid});
+        }
+        break;
+      }
+
+      case 'leavequeue': {
+        requestingUser = message.body;
+        usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != requestingUser.uid);
+        break;
       }
     }
   })
 
   connection.on('close', connection => {
     console.log((new Date()) + " Peer " + userId + " disconnected.");
-    delete clients[userID];
+    delete clients[userId];
   })
   console.log('connected: ' + userId + ' in ' + Object.getOwnPropertyNames(clients))
 })
