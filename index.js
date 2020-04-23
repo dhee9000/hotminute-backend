@@ -3,6 +3,7 @@ const express = require('express');
 const { gql, ApolloServer } = require('apollo-server-express');
 const http = require('http');
 const https = require('https');
+const fs = require('fs');
 
 // Configure API Server
 const HTTP_PORT = process.env.PORT || 80;
@@ -10,7 +11,7 @@ const SSL_PORT = process.env.SSL_PORT || 443;
 const app = express();
 
 // Setup Data Store Access
-// const MongoClient = require('./Clients/MongoClient.js');
+const MongoClient = require('./Clients/MongoClient.js');
 // const RedisClient = require('./Clients/RedisClient.js');
 
 // Setup GRAPHQL Server
@@ -34,7 +35,14 @@ app.get('/', (req, res) => {
   res.send('HotMinuteAPI v0.0.1');
 })
 
-const serverHTTPS = https.createServer(app).listen({ port: SSL_PORT }, () =>
+const serverHTTPS = https.createServer({
+	key: fs.readFileSync('./ssl/server.key'),
+	cert: fs.readFileSync('./ssl/server.cert'),
+}, app).listen({
+	key: fs.readFileSync('./ssl/server.key'),
+	cert: fs.readFileSync('./ssl/server.cert'),
+	port: SSL_PORT,
+}, () =>
   console.log(`🚀 GraphQL Server ready at http://localhost:${SSL_PORT}${apolloServer.graphqlPath}`)
 );
 
@@ -48,7 +56,7 @@ const admin = require('./Clients/FirebaseClient');
 const AgoraClient = require('./Clients/AgoraClient');
 
 const io = new WebSocketServer({
-  httpServer: serverHTTP,
+  httpServer: [serverHTTP, serverHTTPS],
 })
 
 const clients = {};
@@ -96,7 +104,7 @@ io.on('request', request => {
           connection.send(JSON.stringify({type: 'matchfound', body:{token: requestingUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}));
           connection.send(JSON.stringify({type: 'debug', body: 'Match Found!'}));
           
-          clients[users[nextUser.uid]].send(JSON.stringify({type: 'matchfound', body:{token: requestingUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}))
+          clients[users[nextUser.uid]].send(JSON.stringify({type: 'matchfound', body:{token: nextUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}))
           clients[users[nextUser.uid]].send(JSON.stringify({type: 'debug', body: 'Match Found!'}));
           
           usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != requestingUser.uid);
