@@ -1,6 +1,15 @@
 const { gql } = require('apollo-server-express');
 const { GraphQLScalarType } = require('graphql');
 const { Kind } = require('graphql/language');
+const { RedisPubSub } = require('graphql-redis-subscriptions');
+
+var redisClient = require('redis-connection')();
+var redisSub = require('redis-connection')('subscriber');
+
+const pubsub = new RedisPubSub({
+  publisher: redisClient,
+  subscriber: redisSub,
+});
 
 const typeDefs = gql`
     scalar Date
@@ -13,9 +22,29 @@ const typeDefs = gql`
     type Mutation {
         _empty: String,
     }
+    
+    type Subscription {
+        _empty: String
+    }
 `
 
 const resolvers = {
+  Query: {
+    _empty: (parent, args, context) => {
+      return("helloworld");
+    },
+  },
+  Mutation: {
+    _empty: (parent, args, context) => {
+      context.pubsub.publish('EMPTY', "helloworld");
+      return("helloworld");
+    },
+  },
+  Subscription: {
+    _empty: {
+      subscribe: (parent, args, context) => context.pubsub.asyncIterator(['EMPTY'])
+    },
+  },
   Date: new GraphQLScalarType({
     name: 'Date',
     description: 'Date custom scalar type',
