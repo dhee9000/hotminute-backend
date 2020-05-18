@@ -6,10 +6,11 @@ const { gql } = require('apollo-server-express');
 
 const userTypeDef = gql`
     extend type Query {
-        user(id: Int!): User
+        user(id: ID!): User
     }
 
     type User {
+        id: ID!,
         fname: String!,
         lname: String!,
         phno: String!,
