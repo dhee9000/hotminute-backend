@@ -10,6 +10,11 @@ const profileTypeDef = gql`
         profiles: [Profile]
     }
 
+    input ProfileImage {
+        order: Int!,
+        image: Upload!,
+    }
+
     input ProfileInput {
         fname: String!,
         lname: String!,
@@ -18,7 +23,7 @@ const profileTypeDef = gql`
         bio: String!,
         # location: Location!,
         gender: String!,
-        images: [String!]!
+        images: [ProfileImage!]!
     }
 
     extend type Mutation {
