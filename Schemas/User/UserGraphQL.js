@@ -22,7 +22,7 @@ const userTypeDef = gql`
 const userResolvers = {
     Query: {
         user: (parent, args) =>{
-            return User.findById(args.id)
+            return User.findById(args.id);
         }
     },
 }

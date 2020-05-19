@@ -6,7 +6,6 @@ const Schema = mongo.Schema;
 
 const chatSchema = new Schema(
     {
-        id: { type: String, required: true},
         timestamp: { type: Date, required: true },
         from: { type: String, required: true }, // ID of Sender
         chat: { type: String, required: true },

@@ -1,15 +1,6 @@
 const { gql } = require('apollo-server-express');
 const { GraphQLScalarType } = require('graphql');
 const { Kind } = require('graphql/language');
-const { RedisPubSub } = require('graphql-redis-subscriptions');
-
-var redisClient = require('redis-connection')();
-var redisSub = require('redis-connection')('subscriber');
-
-const pubsub = new RedisPubSub({
-  publisher: redisClient,
-  subscriber: redisSub,
-});
 
 const typeDefs = gql`
     scalar Date

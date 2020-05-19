@@ -1,5 +1,6 @@
 // First import the Mongo model so we can work with the database:
 const { Chat } = require('./ChatMongo');
+const { User } = require('../User/UserMongo');
 
 // Then Define GraphQL Schema for GQL using the Mongoose fields above
 const { gql } = require('apollo-server-express');
@@ -8,7 +9,7 @@ const CHAT_SENT = 'CHAT_SEND';
 
 const chatTypeDef = gql`
     extend type Query {
-        chat(id: Int!): Chat
+        chat(id: String!): Chat
     }
 
     extend type Mutation {
@@ -61,22 +62,30 @@ const chatTypeDef = gql`
 
 const chatResolvers = {
     Query: {
-        chat: (parent, args) => {
-            return Chat.findById(args.id)
+        chat: async (parent, args) => {
+            let chatDoc = await Chat.findById(args.id);
+            chatDoc = chatDoc.toObject();
+            let userDoc = await User.findById(chatDoc.from);
+            chatDoc.from = userDoc.toObject();
+            chatDoc.id = chatDoc._id;
+            return chatDoc;
         }
     },
     Mutation: {
-        sendChat: (parent, args, context) => {
-            return Chat.create({
-                id: 'test',
+        sendChat: async (parent, args, context) => {
+            let chatDoc = await Chat.create({
                 timestamp: new Date(),
-                from: 'id',
-                chat: 'id',
-                body: 'message',
-            }).then(doc => {
-                context.pubsub.publish(CHAT_SENT, doc);
-                return doc;
+                from: '5ec32bd6aa1cc07bbc488568',
+                chat: 'testChatId',
+                body: 'Test Message',
             });
+            chatDoc = chatDoc.toObject();
+            let userDoc = await User.findById(chatDoc.from);
+            chatDoc.from = userDoc.toObject();
+            chatDoc.id = chatDoc._id;
+            context.pubsub.publish(CHAT_SENT, { chatSent: chatDoc });
+            console.log(chatDoc);
+            return chatDoc;
         }
     },
     Subscription: {

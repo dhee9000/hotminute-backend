@@ -6,7 +6,6 @@ const Schema = mongo.Schema;
 
 const userSchema = new Schema(
     {
-        id: { type: String, required: true },
         fname: { type: String, required: true },
         lname: { type: String, required: true },
         phno: { type: String, required: true, unique: true },
