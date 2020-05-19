@@ -3,6 +3,7 @@ const express = require('express');
 const { gql, ApolloServer } = require('apollo-server-express');
 const http = require('http');
 const https = require('https');
+const fs = require('fs');
 
 // Configure API Server
 const HTTP_PORT = process.env.PORT || 80;
@@ -55,7 +56,14 @@ app.get('/', (req, res) => {
   res.send('HotMinuteAPI v0.0.1');
 })
 
-const serverHTTPS = https.createServer(app).listen({ port: SSL_PORT }, () =>
+const serverHTTPS = https.createServer({
+	key: fs.readFileSync('./ssl/server.key'),
+	cert: fs.readFileSync('./ssl/server.cert'),
+}, app).listen({
+	key: fs.readFileSync('./ssl/server.key'),
+	cert: fs.readFileSync('./ssl/server.cert'),
+	port: SSL_PORT,
+}, () =>
   console.log(`🚀 GraphQL Server ready at http://localhost:${SSL_PORT}${apolloServer.graphqlPath}`)
 );
 
@@ -66,13 +74,8 @@ const serverHTTP = http.createServer(app).listen(HTTP_PORT, () => {
 apolloServer.installSubscriptionHandlers(serverHTTP);
 apolloServer.installSubscriptionHandlers(serverHTTPS)
 
-// Setup WebSocket Server
-// const WebSocketServer = require('websocket').server;
-// const admin = require('./Clients/FirebaseClient');
-// const AgoraClient = require('./Clients/AgoraClient');
-
 // const io = new WebSocketServer({
-//   httpServer: serverHTTP,
+//   httpServer: [serverHTTP, serverHTTPS],
 // })
 
 // const clients = {};
@@ -117,10 +120,10 @@ apolloServer.installSubscriptionHandlers(serverHTTPS)
 //           let requestingUserToken = AgoraClient.generateRTCToken(requestingUser.uid, `${requestingUser.uid}_${nextUser.uid}`)
 //           let nextUserToken = AgoraClient.generateRTCToken(nextUser.uid, `${requestingUser.uid}_${nextUser.uid}`)
           
-//           connection.send(JSON.stringify({type: 'matchfound', body:{token: requestingUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}));
-//           connection.send(JSON.stringify({type: 'debug', body: 'Match Found!'}));
+// //           connection.send(JSON.stringify({type: 'matchfound', body:{token: requestingUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}));
+// //           connection.send(JSON.stringify({type: 'debug', body: 'Match Found!'}));
           
-//           clients[users[nextUser.uid]].send(JSON.stringify({type: 'matchfound', body:{token: requestingUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}))
+//           clients[users[nextUser.uid]].send(JSON.stringify({type: 'matchfound', body:{token: nextUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}))
 //           clients[users[nextUser.uid]].send(JSON.stringify({type: 'debug', body: 'Match Found!'}));
           
 //           usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != requestingUser.uid);
