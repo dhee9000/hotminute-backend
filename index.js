@@ -5,16 +5,16 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 
-// Configure API Server
+// Configure Express Server
 const HTTP_PORT = process.env.PORT || 80;
 const SSL_PORT = process.env.SSL_PORT || 443;
 const app = express();
 
-// Setup Data Store Access
+// Setup Database Access
 const MongoClient = require('./Clients/MongoClient.js');
 const RedisClient = require('./Clients/RedisClient.js');
 
-// Setup GRAPHQL Server
+// Setup GraphQL Server
 const { typeDefs, resolvers } = require('./Schemas/GraphQLSchema');
 const { RedisPubSub } = require('graphql-redis-subscriptions');
 const AuthContext = require('./Contexts/GraphQLAuthContext');
@@ -43,8 +43,8 @@ const apolloServer = new ApolloServer(
       }
     },
     context: ({ connection }) => {
-      if(connection){
-        return Object.assign(connection.context, {pubsub});
+      if (connection) {
+        return Object.assign(connection.context, { pubsub });
       }
       return { pubsub };
     }
@@ -56,23 +56,35 @@ app.get('/', (req, res) => {
   res.send('HotMinuteAPI v0.0.1');
 })
 
-const serverHTTPS = https.createServer({
-	key: fs.readFileSync('./ssl/server.key'),
-	cert: fs.readFileSync('./ssl/server.cert'),
-}, app).listen({
-	key: fs.readFileSync('./ssl/server.key'),
-	cert: fs.readFileSync('./ssl/server.cert'),
-	port: SSL_PORT,
-}, () =>
-  console.log(`🚀 GraphQL Server ready at http://localhost:${SSL_PORT}${apolloServer.graphqlPath}`)
+// Start Servers
+
+// const key = fs.readFileSync('./ssl/server.key');
+// const cert = fs.readFileSync('./ssl/server.cert');
+
+const serverHTTPS = https.createServer({}, app);
+const serverHTTP = http.createServer(app);
+
+serverHTTPS.on('error', (e) => {
+  console.log('HTTPS Server Error: ', e);
+})
+
+serverHTTP.on('error', (e) => {
+  console.log('HTTP Server Error: ', e);
+})
+
+serverHTTPS.listen({ port: SSL_PORT }, () =>
+  console.log(`🚀 GraphQL Server (HTTPS) ready at http://localhost:${SSL_PORT}${apolloServer.graphqlPath}`)
 );
 
-const serverHTTP = http.createServer(app).listen(HTTP_PORT, () => {
-  console.log(`🚀 GraphQL Server ready at http://localhost:${HTTP_PORT}${apolloServer.graphqlPath}`);
+serverHTTP.listen(HTTP_PORT, () => {
+  console.log(`🚀 GraphQL Server (HTTP) ready at http://localhost:${HTTP_PORT}${apolloServer.graphqlPath}`);
 });
 
 apolloServer.installSubscriptionHandlers(serverHTTP);
 apolloServer.installSubscriptionHandlers(serverHTTPS)
+
+
+// Start Matchmaking Socket Server
 
 // const io = new WebSocketServer({
 //   httpServer: [serverHTTP, serverHTTPS],
@@ -119,13 +131,13 @@ apolloServer.installSubscriptionHandlers(serverHTTPS)
 //           let nextUser = usersNeedingMatches.pop();
 //           let requestingUserToken = AgoraClient.generateRTCToken(requestingUser.uid, `${requestingUser.uid}_${nextUser.uid}`)
 //           let nextUserToken = AgoraClient.generateRTCToken(nextUser.uid, `${requestingUser.uid}_${nextUser.uid}`)
-          
+
 // //           connection.send(JSON.stringify({type: 'matchfound', body:{token: requestingUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}));
 // //           connection.send(JSON.stringify({type: 'debug', body: 'Match Found!'}));
-          
+
 //           clients[users[nextUser.uid]].send(JSON.stringify({type: 'matchfound', body:{token: nextUserToken, roomId: `${requestingUser.uid}_${nextUser.uid}`}}))
 //           clients[users[nextUser.uid]].send(JSON.stringify({type: 'debug', body: 'Match Found!'}));
-          
+
 //           usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != requestingUser.uid);
 //           usersNeedingMatches = usersNeedingMatches.filter(e => e.uid != nextUser.uid);
 //         }
