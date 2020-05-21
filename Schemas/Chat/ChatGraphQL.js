@@ -73,6 +73,7 @@ const chatResolvers = {
     },
     Mutation: {
         sendChat: async (parent, args, context) => {
+            if(!context.authorized) throw new Error("Unauthorized");
             let chatDoc = await Chat.create({
                 timestamp: new Date(),
                 from: '5ec32bd6aa1cc07bbc488568',
@@ -84,7 +85,6 @@ const chatResolvers = {
             chatDoc.from = userDoc.toObject();
             chatDoc.id = chatDoc._id;
             context.pubsub.publish(CHAT_SENT, { chatSent: chatDoc });
-            console.log(chatDoc);
             return chatDoc;
         }
     },

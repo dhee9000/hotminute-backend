@@ -14,10 +14,17 @@ const app = express();
 const MongoClient = require('./Clients/MongoClient.js');
 const RedisClient = require('./Clients/RedisClient.js');
 
+// Initialize Firebase Admin API
+const admin = require('firebase-admin');
+
+admin.initializeApp({
+  credential: admin.credential.applicationDefault(),
+  databaseURL: "https://hot-minute.firebaseio.com"
+});
+
 // Setup GraphQL Server
 const { typeDefs, resolvers } = require('./Schemas/GraphQLSchema');
 const { RedisPubSub } = require('graphql-redis-subscriptions');
-const AuthContext = require('./Contexts/GraphQLAuthContext');
 
 var redisClient = require('redis-connection')();
 var redisSub = require('redis-connection')('subscriber');
@@ -42,11 +49,25 @@ const apolloServer = new ApolloServer(
         console.log("Subscription Socket Disconnected");
       }
     },
-    context: ({ connection }) => {
+    context: async ({ req, connection }) => {
       if (connection) {
         return Object.assign(connection.context, { pubsub });
       }
-      return { pubsub };
+      const idToken = req.headers.authorization || '';
+      if (idToken && idToken.length > 0) {
+        try {
+          let decodedToken = await admin.auth().verifyIdToken(idToken);
+          let uid = decodedToken.uid;
+          return { authorized: true, uid, pubsub };
+        }
+        catch (error) {
+          console.log("Could not verify token");
+          return { authorized: false, pubsub };
+        }
+      }
+      else {
+        return { pubsub }
+      }
     }
   }
 );
