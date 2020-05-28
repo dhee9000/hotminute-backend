@@ -13,6 +13,7 @@ const Location = new Schema(
 
 const profileSchema = new Schema(
     {
+        uid: { type: String, required: true},
         fname: { type: String, required: true },
         lname: { type: String, required: true },
         dob: { type: Date, required: true },
@@ -20,7 +21,7 @@ const profileSchema = new Schema(
         bio: { type: String, required: true },
         // location: { type: Location, required: true }, //TODO: Add Location type to Schema
         gender: { type: String, enum: ['Male', 'Female', 'Other'] },
-        images: { type: [ {type: mongo.SchemaTypes.Url, required: true, } ], required: true }
+        images: { type: [ {type: mongo.SchemaTypes.Url, required: true, } ], required: false }
     },
     {
         collection: 'profiles'

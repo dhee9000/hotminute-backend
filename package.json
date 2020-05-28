@@ -31,6 +31,8 @@
     "mongoose-type-url": "^1.0.6",
     "redis": "^3.0.2",
     "redis-connection": "^5.4.0",
+    "request": "^2.88.2",
+    "request-promise": "^4.2.5",
     "twilio": "^3.42.2",
     "websocket": "^1.0.31"
   },

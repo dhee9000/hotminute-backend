@@ -16,11 +16,31 @@ const RedisClient = require('./Clients/RedisClient.js');
 
 // Initialize Firebase Admin API
 const admin = require('firebase-admin');
+const rp = require('request-promise');
 
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
   databaseURL: "https://hot-minute.firebaseio.com"
 });
+
+admin.auth().createCustomToken('Uwt4O9dTvjeRN9Zq0J2AtsC9HGG2')
+  .then(async token => {
+    const { idToken } = await rp({
+      uri: `https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken?key=AIzaSyCwZIztMG32Y5A_V3y28VHbOMZzi7MWau0`,
+      method: 'POST',
+      body: {
+        token,
+        returnSecureToken: true
+      },
+      json: true
+    });
+    console.log("Test idToken: ", idToken);
+  })
+  .catch(error => {
+    console.log("Couldn't create test token!", error)
+  });
+
+admin.auth().getUser
 
 // Setup GraphQL Server
 const { typeDefs, resolvers } = require('./Schemas/GraphQLSchema');
@@ -61,7 +81,7 @@ const apolloServer = new ApolloServer(
           return { authorized: true, uid, pubsub };
         }
         catch (error) {
-          console.log("Could not verify token");
+          console.log("Could not verify token", error);
           return { authorized: false, pubsub };
         }
       }

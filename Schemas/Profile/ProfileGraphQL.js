@@ -2,11 +2,11 @@
 const { Profile } = require('./ProfileMongo');
 
 // Then Define GraphQL Schema for GQL using the Mongoose fields above
-const { gql } = require('apollo-server-express');
+const { gql, AuthenticationError } = require('apollo-server-express');
 
 const profileTypeDef = gql`
     extend type Query {
-        profile(id: Int!): Profile
+        profile(id: String!): Profile
         profiles: [Profile]
     }
 
@@ -22,13 +22,13 @@ const profileTypeDef = gql`
         occupation: String!,
         bio: String!,
         # location: Location!,
-        gender: String!,
-        images: [ProfileImage!]!
+        gender: Gender!,
+        images: [ProfileImage!]
     }
 
     extend type Mutation {
-        addProfile(input: ProfileInput): Profile
-        editProfile(id: Int!): Profile
+        createProfile(input: ProfileInput!): Boolean
+        editProfile(id: ProfileInput): Boolean
     }
 
     enum Gender {
@@ -38,32 +38,42 @@ const profileTypeDef = gql`
     }
 
     type Profile {
-        id: ID!,
+        id: String!,
+        uid: String!
         fname: String!,
         lname: String!,
         dob: Date!,
         occupation: String!,
         bio: String!,
-        # location: Location!,
         gender: Gender!,
     }
 `
 
 const profileResolvers = {
     Query: {
-        profile: (parent, args) => {
-            return Profile.findById(args.id)
+        profile: async (parent, args, context) => {
+            if(!context.authorized) throw new AuthenticationError();
+            console.log("Profile Retrieved", args.id);
+            return Profile.findOne({uid: args.id});
         },
-        profiles: (parent, args) => {
-            return Profile.find({});
-        }
     },
     Mutation: {
-        addProfile: (parent, args) => {
-            return Profile.create({...args.input});
+        createProfile: async (parent, args, context) => {
+            if(!context.authorized) throw new AuthenticationError();
+            let existingProfile = await Profile.find({uid: context.uid});
+            if(existingProfile.length > 0) return false;
+            await Profile.create({
+                uid: context.uid,
+                ...args.input,
+            });
+            return true;
         },
-        editProfile: (parent, args) => {
-            return Profile.update({ id: args.id }, { ...args.input });
+        editProfile: async (parent, args, context) => {
+            if(!context.authorized) throw new AuthenticationError();
+            await Profile.update({ uid: context.uid }, { 
+                ...args.input
+            });
+            return true;
         }
     }
 }

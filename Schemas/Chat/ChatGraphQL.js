@@ -1,27 +1,28 @@
 // First import the Mongo model so we can work with the database:
-const { Chat } = require('./ChatMongo');
-const { User } = require('../User/UserMongo');
+const { Chat: Message } = require('./ChatMongo');
+const { Profile } = require('../Profile/ProfileMongo');
 
 // Then Define GraphQL Schema for GQL using the Mongoose fields above
-const { gql } = require('apollo-server-express');
+const { gql, AuthenticationError } = require('apollo-server-express');
 
-const CHAT_SENT = 'CHAT_SEND';
+const MESSAGE_SENT = 'MESSAGE_SENT';
 
-const chatTypeDef = gql`
+const messageTypeDef = gql`
     extend type Query {
-        chat(id: String!): Chat
+        message(id: String!): Message
+        messagesInChat(id: String!): [Message]!
     }
 
     extend type Mutation {
-        sendChat(input: ChatInput): Chat
+        sendMessage(input: MessageInput): Boolean
     }
 
     extend type Subscription {
-        chatSent(chatId: String): Chat
+        messageSent(chatId: String): Message
     }
 
-    input ChatInput {
-        chat: String!,
+    input MessageInput {
+        chatId: String!,
         body: String!,
         properties: [PropertyInput!],
         attachments: [AttachmentInput!]
@@ -49,51 +50,64 @@ const chatTypeDef = gql`
         properties: [PropertyInput!],
     }
 
-    type Chat {
-        id: ID!,
+    type Message {
+        id: String!,
         timestamp: Date!,
-        from: User!,
-        chat: String!,
+        from: Profile!,
+        chatId: String!,
         body: String!,
         properties: [Property!],
         attachments: [Attachment!]
     }
 `
 
-const chatResolvers = {
+const messageResolvers = {
     Query: {
-        chat: async (parent, args) => {
-            let chatDoc = await Chat.findById(args.id);
-            chatDoc = chatDoc.toObject();
-            let userDoc = await User.findById(chatDoc.from);
-            chatDoc.from = userDoc.toObject();
-            chatDoc.id = chatDoc._id;
-            return chatDoc;
+        message: async (parent, args) => {
+            let messageDoc = await Message.findById(args.id);
+            messageDoc = messageDoc.toObject();
+            let profileDoc = await Profile.findOne({uid: messageDoc.fromId});
+            messageDoc.from = profileDoc.toObject();
+            messageDoc.id = messageDoc._id;
+            return messageDoc;
+        },
+        messagesInChat: async (parent, args, context) => {
+            let messagesQuery = await Message.find({chatId: args.id}).sort({timestamp: -1});
+            let messagesDocs = messagesQuery.map(async (doc) => {
+                doc = doc.toObject();
+                let profileDoc = await Profile.findOne({uid: doc.fromId});
+                doc.from = profileDoc.toObject();
+                doc.id = doc._id;
+                return doc;
+            });
+            return messagesDocs;
         }
     },
     Mutation: {
-        sendChat: async (parent, args, context) => {
-            if(!context.authorized) throw new Error("Unauthorized");
-            let chatDoc = await Chat.create({
+        sendMessage: async (parent, args, context) => {
+            if(!context.authorized) throw new AuthenticationError();
+            let messageDoc = await Message.create({
                 timestamp: new Date(),
-                from: '5ec32bd6aa1cc07bbc488568',
-                chat: 'testChatId',
-                body: 'Test Message',
+                fromId: context.uid,
+                chatId: args.input.chatId,
+                body: args.input.body,
+                attachments: args.input.attachments,
+                properties: args.input.properties,
             });
-            chatDoc = chatDoc.toObject();
-            let userDoc = await User.findById(chatDoc.from);
-            chatDoc.from = userDoc.toObject();
-            chatDoc.id = chatDoc._id;
-            context.pubsub.publish(CHAT_SENT, { chatSent: chatDoc });
-            return chatDoc;
+            messageDoc = messageDoc.toObject();
+            let profileDoc = await Profile.findOne({uid: messageDoc.fromId});
+            messageDoc.from = profileDoc.toObject();
+            messageDoc.id = messageDoc._id;
+            context.pubsub.publish(`${MESSAGE_SENT}_${args.input.chatId}`, { messageSent: messageDoc });
+            return true;
         }
     },
     Subscription: {
-        chatSent: {
-            subscribe: (parent, args, context) => context.pubsub.asyncIterator([CHAT_SENT])
+        messageSent: {
+            subscribe: (parent, args, context) => context.pubsub.asyncIterator([`${MESSAGE_SENT}_${args.chatId}`])
         }
     }
 }
 
-exports.chatTypeDef = chatTypeDef;
-exports.chatResolvers = chatResolvers;
+exports.messageTypeDef = messageTypeDef;
+exports.messageResolvers = messageResolvers;

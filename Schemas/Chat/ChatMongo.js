@@ -7,8 +7,8 @@ const Schema = mongo.Schema;
 const chatSchema = new Schema(
     {
         timestamp: { type: Date, required: true },
-        from: { type: String, required: true }, // ID of Sender
-        chat: { type: String, required: true },
+        fromId: { type: String, required: true }, // ID of Sender
+        chatId: { type: String, required: true },
         body: { type: String, required: true },
         properties: [
             {key: String, value: String}
