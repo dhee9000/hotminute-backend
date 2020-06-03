@@ -1,3 +1,6 @@
+#!/usr/bin/env node
+
+console.log("\nServer Launched " + new Date().toString() + "\n");
 require('dotenv').config();
 const express = require('express');
 const { gql, ApolloServer } = require('apollo-server-express');
@@ -18,10 +21,19 @@ const RedisClient = require('./Clients/RedisClient.js');
 const admin = require('firebase-admin');
 const rp = require('request-promise');
 
+console.log("Setting Up Firebase SDK...");
+
+try{
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
   databaseURL: "https://hot-minute.firebaseio.com"
 });
+}
+catch(e){
+console.log(e);
+}
+
+console.log("Creating Test Credentials...");
 
 admin.auth().createCustomToken('Uwt4O9dTvjeRN9Zq0J2AtsC9HGG2')
   .then(async token => {
@@ -99,19 +111,11 @@ app.get('/', (req, res) => {
 
 // Start Servers
 
-// const key = fs.readFileSync('./ssl/server.key');
-// const cert = fs.readFileSync('./ssl/server.cert');
+const key = fs.readFileSync('./ssl/server.key');
+const cert = fs.readFileSync('./ssl/server.cert');
 
-const serverHTTPS = https.createServer({}, app);
+const serverHTTPS = https.createServer({key, cert}, app);
 const serverHTTP = http.createServer(app);
-
-serverHTTPS.on('error', (e) => {
-  console.log('HTTPS Server Error: ', e);
-})
-
-serverHTTP.on('error', (e) => {
-  console.log('HTTP Server Error: ', e);
-})
 
 serverHTTPS.listen({ port: SSL_PORT }, () =>
   console.log(`🚀 GraphQL Server (HTTPS) ready at http://localhost:${SSL_PORT}${apolloServer.graphqlPath}`)
