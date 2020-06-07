@@ -1,6 +1,9 @@
-#!/usr/bin/env node
+console.log("\nServer Launched " + new Date().toString() + " v0.0.1\n");
 
-console.log("\nServer Launched " + new Date().toString() + "\n");
+process.on('uncaughtException', function (exception) {
+  console.log(exception);
+});
+
 require('dotenv').config();
 const express = require('express');
 const { gql, ApolloServer } = require('apollo-server-express');
