@@ -1,15 +1,27 @@
 version: '3'
 services:
-  graphqlapi:
+  api:
     build: .
     ports:
-      - "4000:4000"
+      - "80:80"
+      - "443:443"
     links:
       - redis
     env_file:
       - production.env
+    # logging:
+    #   driver: awslogs
+    #   options: 
+    #     awslogs-group: hotminute-api
+    #     awslogs-region: us-west-2
+    #     awslogs-stream-prefix: api
   redis:
     image: "redis:latest"
-    command: "redis-server --requirepass 9d13d2b1e6742c194349a22f66543417"
     ports:
       - "6379:6379"
+    # logging:
+    #   driver: awslogs
+    #   options: 
+    #     awslogs-group: hotminute-api
+    #     awslogs-region: us-west-2
+    #     awslogs-stream-prefix: redis
