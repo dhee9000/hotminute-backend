@@ -1,18 +1,13 @@
-FROM node:current-slim
+FROM node:slim as dependencies
+WORKDIR /app
+COPY package.json yarn.lock ./
+RUN yarn
 
-# Set the working directory to the current folder
-WORKDIR ./
-
-# Copy the package and package-lock files
-COPY package*.json ./
-
-# Install node modules to container folder
-RUN npm install
-
-# Copy app source
+FROM dependencies as app
+WORKDIR /app
 COPY . .
-
-# Expose port 8080 for GraphQL Server
-EXPOSE 8080
-
-CMD ["npm", "start"]
+COPY ./keys/firebaseAdminKey.json ./keys/firebaseAdminKey.json
+EXPOSE 80
+EXPOSE 443
+RUN ls
+ENTRYPOINT yarn start
